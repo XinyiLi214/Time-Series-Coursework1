@@ -1,0 +1,97 @@
+---
+title: "MTH6139 Time Series"
+subtitle: "Coursework 1"
+author:
+- name: Xinyi Li
+date: "March 2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri("./QMlogo.png"), 
+               alt = 'logo', 
+               style = 'position:absolute; top:0; right:0; padding:10px; width:30%;')
+```
+#My project is about the ageing population in the UK.(Using version R4.3.3). Here are my detailed introduction:
+
+#Step1: I got the data from the United Nations Population Division(UNPD),choose the population percentage by Select Age Groups-Both Sexes and then download this Excel file.
+https://population.un.org/wpp/Download/Standard/Population/
+
+#Step2: Through online data, I found that the total dataset includes records of the percentage of the world's population in various age groups and in different years. Since t Propet may take a long time when processing large data sets, in order to avoid this situation. I considered setting a subset of the data set. So I took data for the UK on the percentage of people over 65 from 1950 to 2021 and copied the data into an Excel file.
+
+#Step3: The Excel file gets two columns for the year and percentage respectively, and converts its file to csv format, and the time series model is established.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(prophet)
+library(dplyr)
+library(plotly)
+```
+
+```{r}
+originalData<-read.csv("./UK.csv")
+originalData<-originalData %>% 
+ rename(ds = year, y = percentage) %>%
+ mutate(ds = as.Date(paste0(ds, "-12-31")))
+prophetModel<-prophet(originalData,weekly.seasonality =FALSE,daily.seasonality = FALSE)
+```
+#Future 10 years
+```{r}
+futureTime<-make_future_dataframe(prophetModel,periods=10,freq = "year")
+predictResult<-predict(prophetModel,futureTime)
+
+plot(prophetModel,predictResult)
+prophet_plot_components(prophetModel,predictResult)
+```
+
+#The above three graphs use the default mode,and have the additive components.The prophet is used.
+
+#The first is a forecast graph, from which we can see that the percentage of the UK population aged over 65 is on the rise as the years go by. The lowest population percentage is around 11% and the highest is around 21%
+
+#The second and third are both component analysis charts. The second chart is a component analysis chart about the forecast trend, and the third chart is about the seasonality of the year. From the trend in the second graph, we can see that it is slowly rising. The seasonality in the third graph can be seen to have declined between November and December. This may be because weather conditions can promote the occurrence of geriatric diseases and lead to death rate rises.
+
+```{r}
+plot_ly(x=predictResult$ds,y=predictResult$yhat,type ="scatter", mode = "lines",line=list(color="red"),name="predict") %>%
+  add_trace(x=originalData$ds,y=originalData$y,mode="lines",line = list(color = 'black'), name="actual") %>%
+  layout(title="Forecasting the UK's ageing population",xaxis=list(title="Year"),yaxis = list(title="Percentage"))
+
+```
+
+
+#The above graph also use the default mode,and have the additive components.This is a dynamic data graph about the actual and predicted ageing population in the UK. It can be seen from the figure, the forecast and actual data from 1950 to 2021 are almost consistent, and both show a gradual increasing trend. The projected percentage of the population after 2021 is also gradually increasing. 
+
+```{r}
+originalData<-read.csv("./UK.csv")
+originalData<-originalData %>% 
+ rename(ds = year, y = percentage) %>%
+ mutate(ds = as.Date(paste0(ds, "-12-31")))
+prophetModel<-prophet(originalData,weekly.seasonality = FALSE,daily.seasonality = FALSE,seasonality.mode="multiplicative")
+```
+#Future 10 years
+```{r}
+futureTime<-make_future_dataframe(prophetModel,periods=10,freq = "year")
+predictResult<-predict(prophetModel,futureTime)
+plot(prophetModel,predictResult)
+prophet_plot_components(prophetModel,predictResult)
+```
+
+
+#The above three graphs use the multiplicative components.The prophet is used.
+
+#The first is a forecast chart, from which we can see that the proportion of the UK population over 65 years old is also increasing over time. The lowest proportion of the population is about 11% and the highest is about 21%.
+
+#The second and third pictures are both component analysis charts. The second graph is about the component analysis graph of the forecast trend, and the third graph is about the seasonality during the year. Looking at the trend in the second chart, we can see that it is slowly rising. As can be seen from the third graph, the highest percentage is reached on January 1 of the first year and January 1 of the second year, with small and steady fluctuations in the middle quarters, and the percentage is around 0%.
+```{r}
+plot_ly(x=predictResult$ds,y=predictResult$yhat,type ="scatter", mode = "lines",line=list(color="red"),name="predict") %>%
+  add_trace(x=originalData$ds,y=originalData$y,mode="lines",line = list(color = 'black'), name="actual") %>%
+  layout(title="Forecasting the UK's ageing population",xaxis=list(title="Year"),yaxis = list(title="Percentage"))
+
+```
+
+
+#The above graph also use multiplicative components.This is a dynamic data graph about the actual and predicted ageing population in the UK. It can be seen from the figure, the forecast and actual data from 1950 to 2021 are almost consistent, and the percentage decreased slightly to 14.9% in 1984,but the overall trend is gradually increasing.The projected percentage of the population after 2021 is also gradually increasing. 
+
+#In conclusion, in the dynamic graph, we can see that before 2005, the predictions of the multiplicative component were more consistent with the actual situation than the additive component. From 2005 to 2021, the two component predictions are almost the same as the actual data. If we want to get a more accurate prediction model, I feel that the composition of components is not entirely performed by the addition and multiplication of components. It may be necessary to try more complex composition model situations as an exploration for future learning.
